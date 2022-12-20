@@ -1,0 +1,5 @@
+terra.common:
+  kubernetes:
+    in-kubernetes: false
+  tracing:
+    stackdriverExportEnabled: false
