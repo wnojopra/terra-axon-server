@@ -4,6 +4,9 @@ env:
   tracing:
     exportEnabled: ${CLOUD_TRACE_ENABLED:false}
     samplingRate: ${SAMPLING_PROBABILITY:0}
+  auth:
+    clientId: ${AXON_UI_CLIENT_ID:client-id}
+    clientSecret: ${AXON_UI_CLIENT_SECRET:client-secret}
   wsm:
     basePath: ${WSM_ADDRESS:https://terra-devel-wsm.api.verily.com}
   sam:
@@ -11,7 +14,6 @@ env:
     resourceId: ${SAM_RESOURCE_ID:axonserver-dev}
   calhoun:
     basePath: ${CALHOUN_ADDRESS:https://terra-calhoun.api.verily.com}
-
 
 # Below here is non-deployment-specific
 
@@ -46,6 +48,9 @@ axonserver:
     pollingIntervalSeconds: 60
     startupWaitSeconds: 5
     stalenessThresholdSeconds: 125
+  auth:
+    clientId: ${env.auth.clientId}
+    clientSecret: ${env.auth.clientSecret}
   wsm:
     basePath: ${env.wsm.basePath}
   sam:

@@ -1,6 +1,7 @@
 package bio.terra.axonserver.app.controller;
 
 import bio.terra.axonserver.api.AuthorizationApi;
+import bio.terra.axonserver.app.configuration.AuthConfiguration;
 import bio.terra.axonserver.model.ApiTokenReport;
 import bio.terra.common.exception.ApiException;
 import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeTokenRequest;
@@ -11,34 +12,20 @@ import com.google.api.client.json.gson.GsonFactory;
 import java.io.IOException;
 import javax.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 
 @Controller
 public class AuthorizationApiController implements AuthorizationApi {
+  private final AuthConfiguration authConfiguration;
   private final HttpServletRequest servletRequest;
 
-  @Value("${AXON_UI_CLIENT_ID}")
-  private static String AXON_UI_CLIENT_ID;
-
-  @Value("${AXON_UI_CLIENT_SECRET}")
-  private static String AXON_UI_CLIENT_SECRET;
-
-  @Value("${AXON_UI_CLIENT_ID}")
-  public static void setClientId(String clientId) {
-    AuthorizationApiController.AXON_UI_CLIENT_ID = clientId;
-  }
-
-  @Value("${AXON_UI_CLIENT_SECRET}")
-  public static void setClientSecret(String clientSecret) {
-    AuthorizationApiController.AXON_UI_CLIENT_SECRET = clientSecret;
-  }
-
   @Autowired
-  public AuthorizationApiController(HttpServletRequest servletRequest) {
+  public AuthorizationApiController(
+      HttpServletRequest servletRequest, AuthConfiguration authConfiguration) {
     this.servletRequest = servletRequest;
+    this.authConfiguration = authConfiguration;
   }
 
   @Override
@@ -47,8 +34,8 @@ public class AuthorizationApiController implements AuthorizationApi {
         new GoogleAuthorizationCodeTokenRequest(
             new NetHttpTransport(),
             new GsonFactory(),
-            AXON_UI_CLIENT_ID,
-            AXON_UI_CLIENT_SECRET,
+            authConfiguration.clientId(),
+            authConfiguration.clientSecret(),
             authCode,
             "postmessage");
     try {
@@ -66,8 +53,8 @@ public class AuthorizationApiController implements AuthorizationApi {
             new NetHttpTransport(),
             new GsonFactory(),
             refreshToken,
-            AXON_UI_CLIENT_ID,
-            AXON_UI_CLIENT_SECRET);
+            authConfiguration.clientId(),
+            authConfiguration.clientSecret());
     try {
       var result = buildApiTokenResult(request.execute());
       return new ResponseEntity<>(result, HttpStatus.OK);
