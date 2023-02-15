@@ -11,7 +11,6 @@ import com.google.api.client.json.gson.GsonFactory;
 import java.io.IOException;
 import javax.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -19,21 +18,12 @@ import org.springframework.stereotype.Controller;
 @Controller
 public class AuthorizationApiController implements AuthorizationApi {
   private final HttpServletRequest servletRequest;
-
-  @Value("${AXON_UI_CLIENT_ID}")
   private static String AXON_UI_CLIENT_ID;
-
-  @Value("${AXON_UI_CLIENT_SECRET}")
   private static String AXON_UI_CLIENT_SECRET;
 
-  @Value("${AXON_UI_CLIENT_ID}")
-  public static void setClientId(String clientId) {
-    AuthorizationApiController.AXON_UI_CLIENT_ID = clientId;
-  }
-
-  @Value("${AXON_UI_CLIENT_SECRET}")
-  public static void setClientSecret(String clientSecret) {
-    AuthorizationApiController.AXON_UI_CLIENT_SECRET = clientSecret;
+  static {
+    AuthorizationApiController.AXON_UI_CLIENT_ID = System.getenv("AXON_UI_CLIENT_ID");
+    AuthorizationApiController.AXON_UI_CLIENT_SECRET = System.getenv("AXON_UI_CLIENT_SECRET");
   }
 
   @Autowired
