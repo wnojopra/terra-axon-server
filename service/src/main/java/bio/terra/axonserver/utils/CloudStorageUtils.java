@@ -52,6 +52,9 @@ public class CloudStorageUtils {
   public static byte[] getBucketObject(
       GoogleCredentials googleCredentials, String bucketName, String objectName) {
 
+    objectName =
+        PathValidationUtils.decodePath(
+            objectName); // catch encoded slashes in object path and decode them
     BlobId blobId = BlobId.of(bucketName, objectName);
     try (ReadChannel reader =
         StorageOptions.newBuilder()
