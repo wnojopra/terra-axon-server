@@ -1,6 +1,7 @@
 package bio.terra.axonserver.utils;
 
 import bio.terra.axonserver.service.exception.CloudObjectReadException;
+import bio.terra.common.exception.BadRequestException;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.ReadChannel;
@@ -8,7 +9,9 @@ import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.StorageOptions;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
+import java.net.URLDecoder;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.springframework.util.unit.DataSize;
 
@@ -52,9 +55,13 @@ public class CloudStorageUtils {
   public static byte[] getBucketObject(
       GoogleCredentials googleCredentials, String bucketName, String objectName) {
 
-    objectName =
-        PathValidationUtils.decodePath(
-            objectName); // catch encoded slashes in object path and decode them
+    // encoded slashes in object path and decode them
+    try {
+      objectName = URLDecoder.decode(objectName, StandardCharsets.UTF_8.toString());
+    } catch (Exception e) {
+      throw new BadRequestException("Bad object path: " + objectName);
+    }
+
     BlobId blobId = BlobId.of(bucketName, objectName);
     try (ReadChannel reader =
         StorageOptions.newBuilder()
