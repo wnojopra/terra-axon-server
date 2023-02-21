@@ -55,7 +55,7 @@ public class CloudStorageUtils {
   public static byte[] getBucketObject(
       GoogleCredentials googleCredentials, String bucketName, String objectName) {
 
-    // encoded slashes in object path and decode them
+    // decode encoded slashes in object path
     try {
       objectName = URLDecoder.decode(objectName, StandardCharsets.UTF_8.toString());
     } catch (Exception e) {
