@@ -22,7 +22,8 @@ import org.springframework.util.unit.DataSize;
 public class CloudStorageUtils {
 
   private static final int MAX_OBJECT_SIZE = (int) DataSize.ofMegabytes(512).toBytes();
-  private static final int MAX_BUFFER_SIZE = (int) DataSize.ofKilobytes(64).toBytes();
+  private static final int MAX_BUFFER_SIZE = 4;
+  // private static final int MAX_BUFFER_SIZE = (int) DataSize.ofKilobytes(64).toBytes();
 
   // Google pet service account scopes for accessing Google Cloud APIs.
   private static final List<String> PET_SA_SCOPES =
@@ -78,21 +79,21 @@ public class CloudStorageUtils {
               .getService()
               .reader(blobId);
 
-      long start =
+      long startByteIdx =
           Optional.ofNullable(byteRange).isPresent() ? byteRange.getRangeStart(Long.MAX_VALUE) : 0;
-      long end =
+      long endByteIdx =
           Optional.ofNullable(byteRange).isPresent()
               ? byteRange.getRangeEnd(Long.MAX_VALUE)
               : Long.MAX_VALUE - 1;
-      long length = end - start + 1;
+      long bytesToRead = endByteIdx - startByteIdx;
 
       BoundedByteArrayOutputStream outputStream = new BoundedByteArrayOutputStream(MAX_OBJECT_SIZE);
       ByteBuffer buffer = ByteBuffer.allocate(MAX_BUFFER_SIZE);
 
       long totalBytesRead = 0;
       int bytesRead;
-      reader.seek(start);
-      while (totalBytesRead < length && reader.read(buffer) > 0) {
+      reader.seek(startByteIdx);
+      while (totalBytesRead < bytesToRead && reader.read(buffer) > 0) {
         bytesRead = buffer.position();
         totalBytesRead += bytesRead;
 
