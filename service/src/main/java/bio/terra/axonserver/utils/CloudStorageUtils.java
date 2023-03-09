@@ -18,9 +18,7 @@ import javax.annotation.Nullable;
 import org.springframework.http.HttpRange;
 import org.springframework.util.unit.DataSize;
 
-/**
- * Service for interacting with Google Cloud Storage
- */
+/** Service for interacting with Google Cloud Storage */
 public class CloudStorageUtils {
 
   private static final int MAX_OBJECT_SIZE = (int) DataSize.ofMegabytes(512).toBytes();
@@ -31,8 +29,7 @@ public class CloudStorageUtils {
       ImmutableList.of(
           "openid", "email", "profile", "https://www.googleapis.com/auth/cloud-platform");
 
-  public CloudStorageUtils() {
-  }
+  public CloudStorageUtils() {}
 
   public static List<String> getPetScopes() {
     return PET_SA_SCOPES;
