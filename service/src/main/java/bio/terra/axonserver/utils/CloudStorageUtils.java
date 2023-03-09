@@ -18,19 +18,21 @@ import javax.annotation.Nullable;
 import org.springframework.http.HttpRange;
 import org.springframework.util.unit.DataSize;
 
-/** Service for interacting with Google Cloud Storage */
+/**
+ * Service for interacting with Google Cloud Storage
+ */
 public class CloudStorageUtils {
 
   private static final int MAX_OBJECT_SIZE = (int) DataSize.ofMegabytes(512).toBytes();
-  private static final int MAX_BUFFER_SIZE = 4;
-  // private static final int MAX_BUFFER_SIZE = (int) DataSize.ofKilobytes(64).toBytes();
+  private static final int MAX_BUFFER_SIZE = (int) DataSize.ofKilobytes(64).toBytes();
 
   // Google pet service account scopes for accessing Google Cloud APIs.
   private static final List<String> PET_SA_SCOPES =
       ImmutableList.of(
           "openid", "email", "profile", "https://www.googleapis.com/auth/cloud-platform");
 
-  public CloudStorageUtils() {}
+  public CloudStorageUtils() {
+  }
 
   public static List<String> getPetScopes() {
     return PET_SA_SCOPES;
@@ -71,13 +73,12 @@ public class CloudStorageUtils {
     }
 
     BlobId blobId = BlobId.of(bucketName, objectName);
-    try {
-      ReadChannel reader =
-          StorageOptions.newBuilder()
-              .setCredentials(googleCredentials)
-              .build()
-              .getService()
-              .reader(blobId);
+    try (ReadChannel reader =
+        StorageOptions.newBuilder()
+            .setCredentials(googleCredentials)
+            .build()
+            .getService()
+            .reader(blobId)) {
 
       long startByteIdx =
           Optional.ofNullable(byteRange).isPresent() ? byteRange.getRangeStart(Long.MAX_VALUE) : 0;
@@ -102,7 +103,6 @@ public class CloudStorageUtils {
         buffer.clear();
       }
 
-      reader.close();
       return outputStream.toByteArray();
     } catch (IndexOutOfBoundsException e) {
       throw new CloudObjectReadException("Object Size Too Large: " + objectName);
