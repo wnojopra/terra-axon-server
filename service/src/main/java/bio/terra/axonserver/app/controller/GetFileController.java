@@ -2,14 +2,17 @@ package bio.terra.axonserver.app.controller;
 
 import bio.terra.axonserver.api.GetFileApi;
 import bio.terra.axonserver.service.file.FileService;
+import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.iam.BearerToken;
 import bio.terra.common.iam.BearerTokenFactory;
+import java.util.List;
 import java.util.UUID;
 import javax.annotation.Nullable;
 import javax.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
+import org.springframework.http.HttpRange;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -45,8 +48,10 @@ public class GetFileController extends ControllerBase implements GetFileApi {
 
     BearerToken token = getToken();
 
+    HttpRange byteRange = getByteRange();
+
     ByteArrayResource resourceObj =
-        fileService.getFile(token, workspaceId, resourceId, null, convertTo);
+        fileService.getFile(token, workspaceId, resourceId, null, convertTo, byteRange);
     return new ResponseEntity<>(resourceObj, HttpStatus.OK);
   }
 
@@ -66,8 +71,23 @@ public class GetFileController extends ControllerBase implements GetFileApi {
 
     BearerToken token = getToken();
 
+    HttpRange byteRange = getByteRange();
+
     Resource resourceObj =
-        fileService.getFile(token, workspaceId, resourceId, objectPath, convertTo);
+        fileService.getFile(token, workspaceId, resourceId, objectPath, convertTo, byteRange);
     return new ResponseEntity<>(resourceObj, HttpStatus.OK);
+  }
+
+  private HttpRange getByteRange() {
+    String rangeHeader = getServletRequest().getHeader("Range");
+    if (rangeHeader == null) {
+      return null;
+    }
+
+    List<HttpRange> ranges = HttpRange.parseRanges(rangeHeader);
+    if (ranges.size() != 1) {
+      throw new BadRequestException("Only one range is supported");
+    }
+    return ranges.get(0);
   }
 }
