@@ -93,11 +93,16 @@ public class CloudStorageUtils {
       reader.seek(startByteIdx);
       while (totalBytesRead < bytesToRead && reader.read(buffer) > 0) {
         bytesRead = buffer.position();
-        totalBytesRead += bytesRead;
 
+        // write bytes in buffer to output stream
+        // limit the number of bytes written to the number of bytes left to read
         buffer.flip();
-        outputStream.write(buffer.array(), 0, buffer.limit());
+        int bufferLimit = (int) Math.min(buffer.limit(), bytesToRead - totalBytesRead);
+        outputStream.write(buffer.array(), 0, bufferLimit);
+
+        // clear buffer and increment bytesRead
         buffer.clear();
+        totalBytesRead += bytesRead;
       }
 
       return outputStream.toByteArray();

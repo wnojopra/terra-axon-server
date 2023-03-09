@@ -12,7 +12,6 @@ import java.util.UUID;
 import javax.annotation.Nullable;
 import org.apache.commons.io.FilenameUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpRange;
 import org.springframework.stereotype.Component;
 
@@ -48,7 +47,7 @@ public class FileService {
    * @param byteRange The range of bytes to return. If null, the entire file is returned.
    * @return The file as a byte array
    */
-  public ByteArrayResource getFile(
+  public byte[] getFile(
       BearerToken token,
       UUID workspaceId,
       UUID resourceId,
@@ -65,7 +64,7 @@ public class FileService {
       String fileExtension = FilenameUtils.getExtension(fileWithName.fileName);
       file = convertService.convertFile(file, fileExtension, convertTo, token);
     }
-    return new ByteArrayResource(file);
+    return file;
   }
 
   private FileWithName getFileHandler(

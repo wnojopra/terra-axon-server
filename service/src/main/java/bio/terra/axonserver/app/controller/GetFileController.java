@@ -10,8 +10,6 @@ import java.util.UUID;
 import javax.annotation.Nullable;
 import javax.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.core.io.Resource;
 import org.springframework.http.HttpRange;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -43,14 +41,14 @@ public class GetFileController extends ControllerBase implements GetFileApi {
    * @return - A ResponseEntity containing the file
    */
   @Override
-  public ResponseEntity<Resource> getFile(
+  public ResponseEntity<byte[]> getFile(
       UUID workspaceId, UUID resourceId, @Nullable String convertTo) {
 
     BearerToken token = getToken();
 
     HttpRange byteRange = getByteRange();
 
-    ByteArrayResource resourceObj =
+    byte[] resourceObj =
         fileService.getFile(token, workspaceId, resourceId, null, convertTo, byteRange);
     return new ResponseEntity<>(resourceObj, HttpStatus.OK);
   }
@@ -66,14 +64,14 @@ public class GetFileController extends ControllerBase implements GetFileApi {
    * @return - A ResponseEntity containing the file
    */
   @Override
-  public ResponseEntity<Resource> getFileInBucket(
+  public ResponseEntity<byte[]> getFileInBucket(
       UUID workspaceId, UUID resourceId, String objectPath, @Nullable String convertTo) {
 
     BearerToken token = getToken();
 
     HttpRange byteRange = getByteRange();
 
-    Resource resourceObj =
+    byte[] resourceObj =
         fileService.getFile(token, workspaceId, resourceId, objectPath, convertTo, byteRange);
     return new ResponseEntity<>(resourceObj, HttpStatus.OK);
   }
