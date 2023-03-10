@@ -86,7 +86,7 @@ public class CloudStorageUtils {
       long bytesToRead = endByteIdx - startByteIdx;
 
       BoundedByteArrayOutputStream outputStream = new BoundedByteArrayOutputStream(MAX_OBJECT_SIZE);
-      ByteBuffer buffer = ByteBuffer.allocate(MAX_BUFFER_SIZE);
+      ByteBuffer buffer = ByteBuffer.allocate((int) Math.min(MAX_BUFFER_SIZE, bytesToRead));
 
       long totalBytesRead = 0;
       int bytesRead;
@@ -95,10 +95,8 @@ public class CloudStorageUtils {
         bytesRead = buffer.position();
 
         // write bytes in buffer to output stream
-        // limit the number of bytes written to the number of bytes left to read
         buffer.flip();
-        int bufferLimit = (int) Math.min(buffer.limit(), bytesToRead - totalBytesRead);
-        outputStream.write(buffer.array(), 0, bufferLimit);
+        outputStream.write(buffer.array(), 0, buffer.limit());
 
         // clear buffer and increment bytesRead
         buffer.clear();
@@ -107,7 +105,7 @@ public class CloudStorageUtils {
 
       return outputStream.toByteArray();
     } catch (IndexOutOfBoundsException e) {
-      throw new CloudObjectReadException("Object Size Too Large: " + objectName);
+      throw new CloudObjectReadException("Object size too large: " + objectName);
     } catch (IOException e) {
       throw new CloudObjectReadException("Error reading object: " + objectName);
     }
