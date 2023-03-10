@@ -18,6 +18,10 @@ public class ControllerBase {
     this.request = request;
   }
 
+  public HttpServletRequest getServletRequest() {
+    return request;
+  }
+
   public BearerToken getToken() {
     return bearerTokenFactory.from(request);
   }

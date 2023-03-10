@@ -12,7 +12,7 @@ import java.util.UUID;
 import javax.annotation.Nullable;
 import org.apache.commons.io.FilenameUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpRange;
 import org.springframework.stereotype.Component;
 
 /**
@@ -44,36 +44,39 @@ public class FileService {
    * @param resourceId The id of the resource that the object is in
    * @param objectPath The path to the object in the bucket. Only used if the resource is a bucket.
    * @param convertTo The format to convert the file to. If null, the file is not converted.
+   * @param byteRange The range of bytes to return. If null, the entire file is returned.
    * @return The file as a byte array
    */
-  public ByteArrayResource getFile(
+  public byte[] getFile(
       BearerToken token,
       UUID workspaceId,
       UUID resourceId,
       @Nullable String objectPath,
-      @Nullable String convertTo) {
+      @Nullable String convertTo,
+      @Nullable HttpRange byteRange) {
 
     ResourceDescription resource =
         wsmService.getResource(token.getToken(), workspaceId, resourceId);
 
-    FileWithName fileWithName = getFileHandler(workspaceId, resource, objectPath, token);
+    FileWithName fileWithName = getFileHandler(workspaceId, resource, objectPath, byteRange, token);
     byte[] file = fileWithName.file;
     if (convertTo != null) {
       String fileExtension = FilenameUtils.getExtension(fileWithName.fileName);
       file = convertService.convertFile(file, fileExtension, convertTo, token);
     }
-    return new ByteArrayResource(file);
+    return file;
   }
 
   private FileWithName getFileHandler(
       UUID workspaceId,
       ResourceDescription resource,
       @Nullable String objectPath,
+      @Nullable HttpRange byteRange,
       BearerToken token) {
 
     return switch (resource.getMetadata().getResourceType()) {
-      case GCS_OBJECT -> getGcsObjectFile(workspaceId, resource, objectPath, token);
-      case GCS_BUCKET -> getGcsBucketFile(workspaceId, resource, objectPath, token);
+      case GCS_OBJECT -> getGcsObjectFile(workspaceId, resource, objectPath, byteRange, token);
+      case GCS_BUCKET -> getGcsBucketFile(workspaceId, resource, objectPath, byteRange, token);
       default -> throw new InvalidResourceTypeException(
           resource.getMetadata().getResourceType()
               + " is not a type of resource that contains files");
@@ -84,6 +87,7 @@ public class FileService {
       UUID workspaceId,
       ResourceDescription resource,
       @Nullable String objectPath,
+      @Nullable HttpRange byteRange,
       BearerToken token) {
     GoogleCredentials googleCredentials = getGoogleCredentials(workspaceId, token);
 
@@ -95,16 +99,22 @@ public class FileService {
       objectPath = resource.getResourceAttributes().getGcpGcsObject().getFileName();
     }
 
-    byte[] file = CloudStorageUtils.getBucketObject(googleCredentials, bucketName, objectPath);
+    byte[] file =
+        CloudStorageUtils.getBucketObject(googleCredentials, bucketName, objectPath, byteRange);
     return new FileWithName(file, objectPath);
   }
 
   private FileWithName getGcsBucketFile(
-      UUID workspaceId, ResourceDescription resource, String objectPath, BearerToken token) {
+      UUID workspaceId,
+      ResourceDescription resource,
+      String objectPath,
+      @Nullable HttpRange byteRange,
+      BearerToken token) {
     GoogleCredentials googleCredentials = getGoogleCredentials(workspaceId, token);
 
     String bucketName = resource.getResourceAttributes().getGcpGcsBucket().getBucketName();
-    byte[] file = CloudStorageUtils.getBucketObject(googleCredentials, bucketName, objectPath);
+    byte[] file =
+        CloudStorageUtils.getBucketObject(googleCredentials, bucketName, objectPath, byteRange);
     return new FileWithName(file, objectPath);
   }
 

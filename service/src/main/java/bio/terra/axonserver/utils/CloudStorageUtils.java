@@ -13,6 +13,9 @@ import java.net.URLDecoder;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Optional;
+import javax.annotation.Nullable;
+import org.springframework.http.HttpRange;
 import org.springframework.util.unit.DataSize;
 
 /** Service for interacting with Google Cloud Storage */
@@ -50,10 +53,14 @@ public class CloudStorageUtils {
    * @param googleCredentials Google credentials to use for the request
    * @param bucketName Name of the bucket
    * @param objectName Name of the object
+   * @param byteRange Byte range to read from the object
    * @return Contents of the object
    */
   public static byte[] getBucketObject(
-      GoogleCredentials googleCredentials, String bucketName, String objectName) {
+      GoogleCredentials googleCredentials,
+      String bucketName,
+      String objectName,
+      @Nullable HttpRange byteRange) {
 
     // decode encoded slashes in object path
     try {
@@ -70,15 +77,35 @@ public class CloudStorageUtils {
             .getService()
             .reader(blobId)) {
 
+      long startByteIdx =
+          Optional.ofNullable(byteRange).isPresent() ? byteRange.getRangeStart(Long.MAX_VALUE) : 0;
+      long endByteIdx =
+          Optional.ofNullable(byteRange).isPresent()
+              ? byteRange.getRangeEnd(Long.MAX_VALUE)
+              : Long.MAX_VALUE - 1;
+      long bytesToRead = endByteIdx - startByteIdx;
+
       BoundedByteArrayOutputStream outputStream = new BoundedByteArrayOutputStream(MAX_OBJECT_SIZE);
-      ByteBuffer bytes = ByteBuffer.allocate(MAX_BUFFER_SIZE);
-      while (reader.read(bytes) > 0) {
-        bytes.flip();
-        outputStream.write(bytes.array(), 0, bytes.limit());
-        bytes.clear();
+      ByteBuffer buffer = ByteBuffer.allocate((int) Math.min(MAX_BUFFER_SIZE, bytesToRead));
+
+      long totalBytesRead = 0;
+      int bytesRead;
+      reader.seek(startByteIdx);
+      while (totalBytesRead < bytesToRead && reader.read(buffer) > 0) {
+        bytesRead = buffer.position();
+
+        // write bytes in buffer to output stream
+        buffer.flip();
+        outputStream.write(buffer.array(), 0, buffer.limit());
+
+        // clear buffer and increment bytesRead
+        buffer.clear();
+        totalBytesRead += bytesRead;
       }
 
       return outputStream.toByteArray();
+    } catch (IndexOutOfBoundsException e) {
+      throw new CloudObjectReadException("Object size too large: " + objectName);
     } catch (IOException e) {
       throw new CloudObjectReadException("Error reading object: " + objectName);
     }
