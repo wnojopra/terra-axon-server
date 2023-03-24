@@ -1,6 +1,5 @@
 package bio.terra.axonserver.app.controller;
 
-import bio.terra.axonserver.api.GetSignedUrlApi;
 import bio.terra.axonserver.api.SignedUrlApi;
 import bio.terra.axonserver.model.ApiSignedUrlReport;
 import bio.terra.axonserver.service.iam.SamService;
@@ -67,8 +66,10 @@ public class SignedUrlController extends ControllerBase implements SignedUrlApi 
     }
   }
 
-  // Generate the V4 signed URL using the Google application default credentials, and pet service
+  // Generate the V4 signed URL using the Google application default credentials and pet service
   // account email.
+  // <p> See https://cloud.google.com/storage/docs/access-control/signed-urls and
+  // https://cloud.google.com/storage/docs/access-control/signing-urls-with-helpers#client-libraries
   public URL generateV4GetObjectSignedUrl(String projectId, String bucketName, String objectName)
       throws StorageException, IOException {
     String petSaEmail = samService.getPetServiceAccount(projectId, getToken());
