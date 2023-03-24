@@ -30,6 +30,7 @@ public class SignedUrlController extends ControllerBase implements SignedUrlApi 
 
   private final SamService samService;
   private final WorkspaceManagerService wsmService;
+  private static final int DEFAULT_SIGNED_URL_EXPIRATION_TIME_IN_MINUTES = 60;
 
   @Autowired
   public SignedUrlController(
@@ -94,6 +95,10 @@ public class SignedUrlController extends ControllerBase implements SignedUrlApi 
             .getService();
 
     BlobInfo blobInfo = BlobInfo.newBuilder(BlobId.of(bucketName, objectName)).build();
-    return storage.signUrl(blobInfo, 60, TimeUnit.MINUTES, Storage.SignUrlOption.withV4Signature());
+    return storage.signUrl(
+        blobInfo,
+        DEFAULT_SIGNED_URL_EXPIRATION_TIME_IN_MINUTES,
+        TimeUnit.MINUTES,
+        Storage.SignUrlOption.withV4Signature());
   }
 }
