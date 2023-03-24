@@ -66,10 +66,15 @@ public class SignedUrlController extends ControllerBase implements SignedUrlApi 
     }
   }
 
-  // Generate the V4 signed URL using the Google application default credentials and pet service
-  // account email.
-  // <p> See https://cloud.google.com/storage/docs/access-control/signed-urls and
-  // https://cloud.google.com/storage/docs/access-control/signing-urls-with-helpers#client-libraries
+  /**
+   * Generate a V4 signed URL using the Google application default credentials and pet service
+   * account email.
+   *
+   * <p>See <a href="https://cloud.google.com/storage/docs/access-control/signed-urls">Signed
+   * URLs</a> and <a
+   * href="https://cloud.google.com/storage/docs/access-control/signing-urls-with-helpers#client-libraries">V4
+   * signing process with Cloud Storage tools</a>
+   */
   public URL generateV4GetObjectSignedUrl(String projectId, String bucketName, String objectName)
       throws StorageException, IOException {
     String petSaEmail = samService.getPetServiceAccount(projectId, getToken());
