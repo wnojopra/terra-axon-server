@@ -47,17 +47,17 @@ public class SamService {
   }
 
   /**
-   * Get a pet service account email for a user.
+   * Get the pet service account email for a user, within a specified project.
    *
-   * @param projectId google project id
-   * @param userRequest user access token
-   * @return pet service account email.
+   * @param projectId Google project ID
+   * @param userRequest User access token
+   * @return The pet service account email.
    */
   public String getPetServiceAccount(String projectId, BearerToken userRequest) {
     try {
       return new GoogleApi(getApiClient(userRequest.getToken())).getPetServiceAccount(projectId);
     } catch (ApiException apiException) {
-      throw SamExceptionFactory.create("Error getting user's pet SA.", apiException);
+      throw SamExceptionFactory.create("Error getting user's pet SA email.", apiException);
     }
   }
 }

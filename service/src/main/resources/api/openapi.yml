@@ -125,13 +125,15 @@ paths:
                 type: string
                 format: byte
 
-  /api/workspaces/v1/{workspaceId}/resources/{resourceId}/getSignedUrl/objects/{objectPath}:
+  /api/workspaces/v1/{workspaceId}/resources/{resourceId}/signedUrl/objects/{objectPath}:
     parameters:
       - $ref: "#/components/parameters/WorkspaceId"
       - $ref: "#/components/parameters/ResourceId"
       - $ref: "#/components/parameters/ObjectPath"
     get:
-      summary: Generates a signed URL with read-access to the GCS object from the corresponding bucket in WSM.
+      summary: | 
+        Generates a signed URL with read-access to the GCS object from the corresponding bucket in WSM. 
+        These are generated using V4 signatures.
       operationId: getSignedUrl
       tags: [ SignedUrl ]
       responses:
