@@ -7,7 +7,7 @@ info:
   version: 0.0.1
 
 security:
-  - authorization: [openiAd, email, profile]
+  - authorization: [openid, email, profile]
   - bearerAuth: []
 
 paths:
@@ -125,6 +125,29 @@ paths:
                 type: string
                 format: byte
 
+  /api/workspaces/v1/{workspaceId}/resources/{resourceId}/signedUrl/objects/{objectPath}:
+    parameters:
+      - $ref: "#/components/parameters/WorkspaceId"
+      - $ref: "#/components/parameters/ResourceId"
+      - $ref: "#/components/parameters/ObjectPath"
+    get:
+      summary: |
+        Generates a signed URL with read-access to the GCS object from the corresponding bucket in WSM.
+        These are generated using V4 signatures.
+      operationId: getSignedUrl
+      tags: [ SignedUrl ]
+      responses:
+        "200":
+          $ref: "#/components/responses/SignedUrlResultResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
 components:
   schemas:
     # Please keep alphabetized
@@ -159,6 +182,13 @@ components:
         idToken:
           type: string
 
+    SignedUrlReport:
+      type: object
+      required : [signedUrl]
+      properties:
+        signedUrl:
+          type: string
+
     VersionProperties:
       type: object
       required: [gitTag, gitHash, github, build]
@@ -191,6 +221,13 @@ components:
           schema:
             $ref: "#/components/schemas/ErrorReport"
 
+    NotFound:
+      description: Not found.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorReport"
+
     PermissionDenied:
       description: Permission denied
       content:
@@ -204,6 +241,13 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorReport"
+
+    SignedUrlResultResponse:
+      description: Result of a signed URl request.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/SignedUrlReport"
 
     TokenResultResponse:
       description: Result of a token request.
