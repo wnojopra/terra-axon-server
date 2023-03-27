@@ -6,6 +6,7 @@ import bio.terra.axonserver.service.iam.SamService;
 import bio.terra.axonserver.service.wsm.WorkspaceManagerService;
 import bio.terra.axonserver.utils.CloudStorageUtils;
 import bio.terra.common.exception.ApiException;
+import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.iam.BearerToken;
 import bio.terra.common.iam.BearerTokenFactory;
 import com.google.auth.oauth2.GoogleCredentials;
@@ -49,7 +50,7 @@ public class SignedUrlController extends ControllerBase implements SignedUrlApi 
     BearerToken token = getToken();
     String accessToken = token.getToken();
     if (accessToken == null) {
-      throw new ApiException("Access token is null. Try refreshing your access.");
+      throw new BadRequestException("Access token is null. Try refreshing your access.");
     }
     String projectId = wsmService.getGcpContext(workspaceId, accessToken).getProjectId();
     String bucketName =
