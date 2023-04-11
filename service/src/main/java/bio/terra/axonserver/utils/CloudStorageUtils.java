@@ -8,13 +8,21 @@ import com.google.cloud.ReadChannel;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.StorageOptions;
 import com.google.common.collect.ImmutableList;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import javax.annotation.Nullable;
+import org.apache.commons.io.FilenameUtils;
 import org.springframework.http.HttpRange;
 import org.springframework.util.unit.DataSize;
 
@@ -56,7 +64,7 @@ public class CloudStorageUtils {
    * @param byteRange Byte range to read from the object
    * @return Contents of the object
    */
-  public static byte[] getBucketObject(
+  public static File getBucketObject(
       GoogleCredentials googleCredentials,
       String bucketName,
       String objectName,
@@ -77,33 +85,47 @@ public class CloudStorageUtils {
             .getService()
             .reader(blobId)) {
 
-      long startByteIdx =
-          Optional.ofNullable(byteRange).isPresent() ? byteRange.getRangeStart(Long.MAX_VALUE) : 0;
-      long endByteIdx =
-          Optional.ofNullable(byteRange).isPresent()
-              ? byteRange.getRangeEnd(Long.MAX_VALUE)
-              : Long.MAX_VALUE - 1;
-      long bytesToRead = endByteIdx - startByteIdx;
+      // Create a temporary file to store the object contents and set its permissions to 700
+      Set<PosixFilePermission> permissions = PosixFilePermissions.fromString("rwx------");
+      File outputFile =
+          File.createTempFile(
+              FilenameUtils.getBaseName(objectName) + "-",
+              "." + FilenameUtils.getExtension(objectName),
+              new File(CreateDownloadsFolder.DOWNLOADS_DIR.toString()));
+      outputFile.deleteOnExit();
+      Files.setPosixFilePermissions(Paths.get(outputFile.getPath()), permissions);
 
-      BoundedByteArrayOutputStream outputStream = new BoundedByteArrayOutputStream(MAX_OBJECT_SIZE);
-      ByteBuffer buffer = ByteBuffer.allocate((int) Math.min(MAX_BUFFER_SIZE, bytesToRead));
+      // Read the object contents into the temporary file
+      try (FileOutputStream outputStream = new FileOutputStream(outputFile)) {
+        long startByteIdx =
+            Optional.ofNullable(byteRange).isPresent()
+                ? byteRange.getRangeStart(Long.MAX_VALUE)
+                : 0;
+        long endByteIdx =
+            Optional.ofNullable(byteRange).isPresent()
+                ? byteRange.getRangeEnd(Long.MAX_VALUE)
+                : Long.MAX_VALUE - 1;
+        long bytesToRead = endByteIdx - startByteIdx;
 
-      long totalBytesRead = 0;
-      int bytesRead;
-      reader.seek(startByteIdx);
-      while (totalBytesRead < bytesToRead && reader.read(buffer) > 0) {
-        bytesRead = buffer.position();
+        ByteBuffer buffer = ByteBuffer.allocate((int) Math.min(MAX_BUFFER_SIZE, bytesToRead));
 
-        // write bytes in buffer to output stream
-        buffer.flip();
-        outputStream.write(buffer.array(), 0, buffer.limit());
+        long totalBytesRead = 0;
+        int bytesRead;
+        reader.seek(startByteIdx);
+        while (totalBytesRead < bytesToRead && reader.read(buffer) > 0) {
+          bytesRead = buffer.position();
 
-        // clear buffer and increment bytesRead
-        buffer.clear();
-        totalBytesRead += bytesRead;
+          // write bytes in buffer to output stream
+          buffer.flip();
+          outputStream.write(buffer.array(), 0, buffer.limit());
+
+          // clear buffer and increment bytesRead
+          buffer.clear();
+          totalBytesRead += bytesRead;
+        }
       }
+      return outputFile;
 
-      return outputStream.toByteArray();
     } catch (IndexOutOfBoundsException e) {
       throw new CloudObjectReadException("Object size too large: " + objectName);
     } catch (IOException e) {
