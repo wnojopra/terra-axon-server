@@ -8,12 +8,9 @@ import bio.terra.axonserver.utils.CloudStorageUtils;
 import bio.terra.common.iam.BearerToken;
 import bio.terra.workspace.model.ResourceDescription;
 import com.google.auth.oauth2.GoogleCredentials;
-import java.io.File;
 import java.util.UUID;
 import javax.annotation.Nullable;
-import javax.ws.rs.InternalServerErrorException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.commons.io.FilenameUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpRange;
 import org.springframework.stereotype.Component;
@@ -24,7 +21,6 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class FileService {
-  Logger logger = LoggerFactory.getLogger(FileService.class);
 
   private final SamService samService;
   private final WorkspaceManagerService wsmService;
@@ -51,7 +47,7 @@ public class FileService {
    * @param byteRange The range of bytes to return. If null, the entire file is returned.
    * @return The file as a byte array
    */
-  public File getFile(
+  public byte[] getFile(
       BearerToken token,
       UUID workspaceId,
       UUID resourceId,
@@ -62,20 +58,16 @@ public class FileService {
     ResourceDescription resource =
         wsmService.getResource(token.getToken(), workspaceId, resourceId);
 
-    File file = getFileHandler(workspaceId, resource, objectPath, byteRange, token);
-
-    // Handle file conversion
+    FileWithName fileWithName = getFileHandler(workspaceId, resource, objectPath, byteRange, token);
+    byte[] file = fileWithName.file;
     if (convertTo != null) {
-      File convertedFile = convertService.convertFile(file, convertTo, token);
-      if (!convertedFile.renameTo(file)) {
-        // Should the renaming of the converted file fail, throw an internal server error
-        throw new InternalServerErrorException("Failed to write converted file");
-      }
+      String fileExtension = FilenameUtils.getExtension(fileWithName.fileName);
+      file = convertService.convertFile(file, fileExtension, convertTo, token);
     }
     return file;
   }
 
-  private File getFileHandler(
+  private FileWithName getFileHandler(
       UUID workspaceId,
       ResourceDescription resource,
       @Nullable String objectPath,
@@ -91,7 +83,7 @@ public class FileService {
     };
   }
 
-  private File getGcsObjectFile(
+  private FileWithName getGcsObjectFile(
       UUID workspaceId,
       ResourceDescription resource,
       @Nullable String objectPath,
@@ -107,10 +99,12 @@ public class FileService {
       objectPath = resource.getResourceAttributes().getGcpGcsObject().getFileName();
     }
 
-    return CloudStorageUtils.getBucketObject(googleCredentials, bucketName, objectPath, byteRange);
+    byte[] file =
+        CloudStorageUtils.getBucketObject(googleCredentials, bucketName, objectPath, byteRange);
+    return new FileWithName(file, objectPath);
   }
 
-  private File getGcsBucketFile(
+  private FileWithName getGcsBucketFile(
       UUID workspaceId,
       ResourceDescription resource,
       String objectPath,
@@ -119,7 +113,9 @@ public class FileService {
     GoogleCredentials googleCredentials = getGoogleCredentials(workspaceId, token);
 
     String bucketName = resource.getResourceAttributes().getGcpGcsBucket().getBucketName();
-    return CloudStorageUtils.getBucketObject(googleCredentials, bucketName, objectPath, byteRange);
+    byte[] file =
+        CloudStorageUtils.getBucketObject(googleCredentials, bucketName, objectPath, byteRange);
+    return new FileWithName(file, objectPath);
   }
 
   private GoogleCredentials getGoogleCredentials(UUID workspaceId, BearerToken token) {
