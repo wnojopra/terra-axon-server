@@ -135,7 +135,7 @@ paths:
         Generates a signed URL with read-access to the GCS object from the corresponding bucket in WSM.
         These are generated using V4 signatures.
       operationId: getSignedUrl
-      tags: [ SignedUrl ]
+      tags: [GetFile]
       responses:
         "200":
           $ref: "#/components/responses/SignedUrlResultResponse"
