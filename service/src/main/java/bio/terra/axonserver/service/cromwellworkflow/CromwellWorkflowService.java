@@ -193,13 +193,13 @@ public class CromwellWorkflowService {
 
     File tempInputsFile = null;
     if (workflowInputs != null) {
-      tempInputsFile = File.createTempFile("workflow-label-", "-terra");
+      tempInputsFile = Files.createTempFile("workflow-label-", "-terra").toFile();
       try (OutputStream out = new FileOutputStream(tempInputsFile)) {
         out.write(workflowInputs.getBytes(StandardCharsets.UTF_8));
       }
     }
 
-    File tempOptionsFile = File.createTempFile("workflow-options-", "-terra");
+    File tempOptionsFile = Files.createTempFile("workflow-options-", "-terra").toFile();
     // Adjoin preset options for the options file.
     // Place the project ID + compute SA into the options.
     String projectId = wsmService.getGcpContext(workspaceId, token.getToken()).getProjectId();
@@ -214,7 +214,7 @@ public class CromwellWorkflowService {
       out.write(mapper.writeValueAsString(workflowOptions).getBytes(StandardCharsets.UTF_8));
     }
 
-    File tempLabelsFile = File.createTempFile("workflow-labels-", "-terra");
+    File tempLabelsFile = Files.createTempFile("workflow-labels-", "-terra").toFile();
     // Adjoin the workspace-id label to the workflow.
     JSONObject jsonLabels = labels == null ? new JSONObject() : new JSONObject(labels);
     jsonLabels.put(WORKSPACE_ID_LABEL_KEY, workspaceId);
@@ -263,7 +263,7 @@ public class CromwellWorkflowService {
 
   private File createTempFileFromInputStream(InputStream inputStream, String tempFilePrefix)
       throws IOException {
-    File tempFile = File.createTempFile(tempFilePrefix, "-terra");
+    File tempFile = Files.createTempFile(tempFilePrefix, "-terra").toFile();
     Files.copy(inputStream, tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
     return tempFile;
   }
