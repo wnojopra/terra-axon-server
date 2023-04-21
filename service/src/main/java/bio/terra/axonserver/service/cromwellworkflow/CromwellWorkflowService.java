@@ -193,13 +193,13 @@ public class CromwellWorkflowService {
 
     File tempInputsFile = null;
     if (workflowInputs != null) {
-      tempInputsFile = Files.createTempFile("workflow-label-", "-terra").toFile();
+      tempInputsFile = createSafeTempFile("workflow-label-", "-terra");
       try (OutputStream out = new FileOutputStream(tempInputsFile)) {
         out.write(workflowInputs.getBytes(StandardCharsets.UTF_8));
       }
     }
 
-    File tempOptionsFile = Files.createTempFile("workflow-options-", "-terra").toFile();
+    File tempOptionsFile = createSafeTempFile("workflow-options-", "-terra");
     // Adjoin preset options for the options file.
     // Place the project ID + compute SA into the options.
     String projectId = wsmService.getGcpContext(workspaceId, token.getToken()).getProjectId();
@@ -214,7 +214,7 @@ public class CromwellWorkflowService {
       out.write(mapper.writeValueAsString(workflowOptions).getBytes(StandardCharsets.UTF_8));
     }
 
-    File tempLabelsFile = Files.createTempFile("workflow-labels-", "-terra").toFile();
+    File tempLabelsFile = createSafeTempFile("workflow-labels-", "-terra");
     // Adjoin the workspace-id label to the workflow.
     JSONObject jsonLabels = labels == null ? new JSONObject() : new JSONObject(labels);
     jsonLabels.put(WORKSPACE_ID_LABEL_KEY, workspaceId);
@@ -261,9 +261,17 @@ public class CromwellWorkflowService {
             requestedWorkflowId != null ? requestedWorkflowId.toString() : null);
   }
 
+  private File createSafeTempFile(String filePrefix, String fileSuffix) throws IOException {
+    File resultFile = Files.createTempFile(filePrefix, fileSuffix).toFile();
+    resultFile.setReadable(true,true);
+    resultFile.setWritable(true,true);
+    resultFile.setExecutable(true,true);
+    return resultFile;
+  }
+
   private File createTempFileFromInputStream(InputStream inputStream, String tempFilePrefix)
       throws IOException {
-    File tempFile = Files.createTempFile(tempFilePrefix, "-terra").toFile();
+    File tempFile = createSafeTempFile(tempFilePrefix, "-terra");
     Files.copy(inputStream, tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
     return tempFile;
   }
