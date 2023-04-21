@@ -24,13 +24,19 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.FileAttribute;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import javax.annotation.Nullable;
+
+import org.apache.commons.lang3.SystemUtils;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -262,11 +268,16 @@ public class CromwellWorkflowService {
   }
 
   private File createSafeTempFile(String filePrefix, String fileSuffix) throws IOException {
-    File resultFile = Files.createTempFile(filePrefix, fileSuffix).toFile();
-    resultFile.setReadable(true,true);
-    resultFile.setWritable(true,true);
-    resultFile.setExecutable(true,true);
-    return resultFile;
+    if(SystemUtils.IS_OS_UNIX) {
+      FileAttribute<Set<PosixFilePermission>> attr = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------"));
+      return Files.createTempFile(filePrefix, fileSuffix, attr).toFile();
+    } else {
+      File resultFile = Files.createTempFile(filePrefix, fileSuffix).toFile();
+      resultFile.setReadable(true, true);
+      resultFile.setWritable(true, true);
+      resultFile.setExecutable(true, true);
+      return resultFile;
+    }
   }
 
   private File createTempFileFromInputStream(InputStream inputStream, String tempFilePrefix)
