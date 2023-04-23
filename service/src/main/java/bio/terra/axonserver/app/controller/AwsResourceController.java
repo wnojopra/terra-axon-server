@@ -2,9 +2,14 @@ package bio.terra.axonserver.app.controller;
 
 import bio.terra.axonserver.api.AwsResourceApi;
 import bio.terra.axonserver.model.ApiSignedUrlReport;
+import bio.terra.axonserver.service.cloud.aws.AwsService;
 import bio.terra.axonserver.service.exception.FeatureNotEnabledException;
 import bio.terra.axonserver.service.features.FeatureService;
+import bio.terra.axonserver.service.wsm.WorkspaceManagerService;
 import bio.terra.common.iam.BearerTokenFactory;
+import bio.terra.workspace.model.AwsCredential;
+import bio.terra.workspace.model.ResourceDescription;
+import java.net.URL;
 import java.util.UUID;
 import javax.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,14 +21,20 @@ import org.springframework.stereotype.Controller;
 public class AwsResourceController extends ControllerBase implements AwsResourceApi {
 
   private final FeatureService featureService;
+  private final WorkspaceManagerService wsmService;
+  private final AwsService awsService;
 
   @Autowired
   public AwsResourceController(
       BearerTokenFactory bearerTokenFactory,
       HttpServletRequest request,
-      FeatureService featureService) {
+      FeatureService featureService,
+      WorkspaceManagerService wsmService,
+      AwsService awsService) {
     super(bearerTokenFactory, request);
     this.featureService = featureService;
+    this.wsmService = wsmService;
+    this.awsService = awsService;
   }
 
   @Override
@@ -33,10 +44,23 @@ public class AwsResourceController extends ControllerBase implements AwsResource
       throw new FeatureNotEnabledException("AWS Feature not enabled.");
     }
 
-    // TODO (TERRA-515): Implement the API logic in a service class.  Use this as a test to aid in
-    // plumbing Flagsmith integration in the meantime.
+    String accessToken = getAccessToken();
+    ResourceDescription resourceDescription =
+        wsmService.getResource(accessToken, workspaceId, resourceId);
+
+    AwsCredential awsCredential =
+        wsmService.getAwsResourceCredential(
+            accessToken,
+            resourceDescription,
+            wsmService.getHighestRole(accessToken, workspaceId),
+            WorkspaceManagerService.AWS_RESOURCE_CREDENTIAL_DURATION_MIN);
+
+    URL signedConsoleUrl =
+        awsService.createSignedConsoleUrl(
+            resourceDescription, awsCredential, AwsService.MAX_CONSOLE_SESSION_DURATION);
+
     ApiSignedUrlReport actualResult =
-        new ApiSignedUrlReport().signedUrl("https://console.aws.amazon.com");
+        new ApiSignedUrlReport().signedUrl(signedConsoleUrl.toString());
     return new ResponseEntity<>(actualResult, HttpStatus.OK);
   }
 }
